@@ -1,39 +1,115 @@
-const addMovieModal = document.querySelector("#add-modal"); //selecting div child with ID add-modal
-const backdropModal = document.querySelector("#backdrop"); //selecting div with ID backdrop
-const startAddMovieButton = document.querySelector("header button"); //selecting button inside of header
-const cancelAddMovieButton = addMovieModal.querySelector(".btn--passive"); //selecting the button inside the modal
-const confirmAddMovies = cancelAddMovieButton.nextElementSibling; //selecting the button inside the modal to add a movie
-const userInputs = addMovieModal.querySelectorAll("input");
+const addMovieModal = document.getElementById('add-modal');
+// const addMovieModal = document.querySelector('#add-modal');
+// const addMovieModal = document.body.children[1];
+const startAddMovieButton = document.querySelector('header button');
+// const startAddMovieButton = document.querySelector('header').lastElementChild;
+const backdrop = document.getElementById('backdrop');
+// const backdrop = document.body.firstElementChild;
+const cancelAddMovieButton = addMovieModal.querySelector('.btn--passive');
+const confirmAddMovieButton = cancelAddMovieButton.nextElementSibling;
+const userInputs = addMovieModal.querySelectorAll('input');
+// const userInputs = addMovieModal.getElementsByTagName('input');
+const entryTextSection = document.getElementById('entry-text');
+const deleteMovieModal = document.getElementById('delete-modal');
 
-//movies
 const movies = [];
 
-//first function to handle the backdrop of the modal (active:inactive)
-const toggleBackdropModal = () => {
-  backdropModal.classList.toggle("visible");
+const toggleBackdrop = () => {
+  backdrop.classList.toggle('visible');
 };
 
-//second function to handle the Add movie modal (active:inactive)
-const toggleMovieModal = () => {
-  addMovieModal.classList.toggle("visible");
-  toggleBackdropModal();
+const updateUI = () => {
+  if (movies.length === 0) {
+    entryTextSection.style.display = 'block';
+  } else {
+    entryTextSection.style.display = 'none';
+  }
 };
 
-//third function renaming the function for other uses [toggleMovieModal]
-const backdropClickHandler = () => {
-  toggleMovieModal();
+const closeMovieDeletionModal = () => {
+  toggleBackdrop();
+  deleteMovieModal.classList.remove('visible');
 };
 
-//fourth function, this will null the backdrop and modal
-const cancelAddMovieHandler = () => {
-  toggleMovieModal();
-};
-
-const clearUserInputs = ()=> {
-    for(const usersInput of userInputs){
-        usersInput.value = '';
+const deleteMovieHandler = movieId => {
+  let movieIndex = 0;
+  for (const movie of movies) {
+    if (movie.id === movieId) {
+      break;
     }
-}
+    movieIndex++;
+  }
+  movies.splice(movieIndex, 1);
+  const listRoot = document.getElementById('movie-list');
+  listRoot.children[movieIndex].remove();
+  // listRoot.removeChild(listRoot.children[movieIndex]);
+  closeMovieDeletionModal();
+  updateUI();
+};
+
+const startDeleteMovieHandler = movieId => {
+  deleteMovieModal.classList.add('visible');
+  toggleBackdrop();
+
+  const cancelDeletionButton = deleteMovieModal.querySelector('.btn--passive');
+  let confirmDeletionButton = deleteMovieModal.querySelector('.btn--danger');
+
+  confirmDeletionButton.replaceWith(confirmDeletionButton.cloneNode(true));
+
+  confirmDeletionButton = deleteMovieModal.querySelector('.btn--danger');
+
+  // confirmDeletionButton.removeEventListener('click', deleteMovieHandler.bind(null, movieId)); // will not work :(
+    
+  cancelDeletionButton.removeEventListener('click', closeMovieDeletionModal);
+
+  cancelDeletionButton.addEventListener('click', closeMovieDeletionModal);
+  confirmDeletionButton.addEventListener(
+    'click',
+    deleteMovieHandler.bind(null, movieId)
+  );
+};
+
+const renderNewMovieElement = (id, title, imageUrl, rating) => {
+  const newMovieElement = document.createElement('li');
+  newMovieElement.className = 'movie-element';
+  newMovieElement.innerHTML = `
+    <div class="movie-element__image">
+      <img src="${imageUrl}" alt="${title}">
+    </div>
+    <div class="movie-element__info">
+      <h2>${title}</h2>
+      <p>${rating}/5 stars</p>
+    </div>
+  `;
+  newMovieElement.addEventListener(
+    'click',
+    startDeleteMovieHandler.bind(null, id)
+  );
+  const listRoot = document.getElementById('movie-list');
+  listRoot.append(newMovieElement);
+};
+
+const closeMovieModal = () => {
+  addMovieModal.classList.remove('visible');
+};
+
+const showMovieModal = () => {
+  // function() {}
+  addMovieModal.classList.add('visible');
+  toggleBackdrop();
+};
+
+const clearMovieInput = () => {
+  for (const usrInput of userInputs) {
+    usrInput.value = '';
+  }
+};
+
+const cancelAddMovieHandler = () => {
+  closeMovieModal();
+  toggleBackdrop();
+  clearMovieInput();
+};
 
 const addMovieHandler = () => {
   const titleValue = userInputs[0].value;
@@ -41,29 +117,44 @@ const addMovieHandler = () => {
   const ratingValue = userInputs[2].value;
 
   if (
-    titleValue.trim() === "" ||
-    imageUrlValue.trim() === "" ||
-    ratingValue < 1 ||
+    titleValue.trim() === '' ||
+    imageUrlValue.trim() === '' ||
+    ratingValue.trim() === '' ||
+    +ratingValue < 1 ||
     +ratingValue > 5
   ) {
-    alert("please make sure you enter a valid value");
+    alert('Please enter valid values (rating between 1 and 5).');
     return;
   }
 
-  newMovie = {
-      title : titleValue,
-      image : imageUrlValue,
-      rating : ratingValue
-  }
+  const newMovie = {
+    id: Math.random().toString(),
+    title: titleValue,
+    image: imageUrlValue,
+    rating: ratingValue
+  };
 
   movies.push(newMovie);
   console.log(movies);
-  toggleMovieModal();
-  clearUserInputs();
+  closeMovieModal();
+  toggleBackdrop();
+  clearMovieInput();
+  renderNewMovieElement(
+    newMovie.id,
+    newMovie.title,
+    newMovie.image,
+    newMovie.rating
+  );
+  updateUI();
 };
 
-//Event listeners
-startAddMovieButton.addEventListener("click", toggleMovieModal);
-backdropModal.addEventListener("click", backdropClickHandler);
-cancelAddMovieButton.addEventListener("click", cancelAddMovieHandler);
-confirmAddMovies.addEventListener("click", addMovieHandler);
+const backdropClickHandler = () => {
+  closeMovieModal();
+  closeMovieDeletionModal();
+  clearMovieInput();
+};
+
+startAddMovieButton.addEventListener('click', showMovieModal);
+backdrop.addEventListener('click', backdropClickHandler);
+cancelAddMovieButton.addEventListener('click', cancelAddMovieHandler);
+confirmAddMovieButton.addEventListener('click', addMovieHandler);
